@@ -1,0 +1,18 @@
+
+  - type: web
+    name: orchestrator
+    env: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/Debbatisudheer/afe-mos
+    branch: main
+    root: services/orchestrator
+
+  - type: web
+    name: vitals-monitor
+    env: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/Debbatisudheer/afe-mos
+    branch: main
+    root: services/agents/healthcare/vitals-monitor

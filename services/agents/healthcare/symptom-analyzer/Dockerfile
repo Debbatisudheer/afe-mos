@@ -1,5 +1,6 @@
 # ------------ BUILD STAGE ------------
-FROM golang:1.21 AS builder
+FROM golang:1.25 AS builder
+
 WORKDIR /app
 
 COPY go.mod ./

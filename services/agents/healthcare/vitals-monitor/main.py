@@ -1,78 +1,83 @@
-# services/agents/healthcare/vitals-monitor/main.py
+# services/orchestrator/main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
 import os
-import time
-from typing import Optional
-import uvicorn    # <-- REQUIRED FOR RENDER
 
 app = FastAPI()
 
-ORCHESTRATOR_URL = os.getenv(
-    "ORCHESTRATOR_URL",
-    "http://localhost:8000/api/v1/vitals_alert"
+# -----------------------------
+# URLs for Render microservices
+# -----------------------------
+SYMPTOM_ANALYZER_URL = os.getenv(
+    "SYMPTOM_ANALYZER_URL",
+    "https://symptom-analyzer-wi82.onrender.com/diagnose"
 )
 
-class VitalsPayload(BaseModel):
+# (Later we will also call model-serving; keeping it optional now)
+MODEL_SERVING_URL = os.getenv(
+    "MODEL_SERVING_URL",
+    "https://model-serving-s7cj.onrender.com/predict"
+)
+
+# -----------------------------
+# Request format from vitals-monitor
+# -----------------------------
+class VitalsAlert(BaseModel):
     patient_id: str
     metric: str
     value: float
-    ts: Optional[str] = None
+    ts: str
+    severity: str
 
-def severity_for(metric: str, value: float) -> str:
-    m = metric.lower()
-    if m == "hr":
-        if value < 40 or value > 120:
-            return "high"
-        if value < 55 or value > 100:
-            return "medium"
-        return "low"
+@app.get("/")
+def root():
+    return {"status": "orchestrator-running"}
 
-    if m == "spo2":
-        if value < 88:
-            return "high"
-        if value < 94:
-            return "medium"
-        return "low"
+# --------------------------------------
+# Vitals Monitor → Orchestrator endpoint
+# --------------------------------------
+@app.post("/api/v1/vitals_alert")
+def receive_vitals_alert(alert: VitalsAlert):
+    """
+    Receives abnormal vitals from vitals-monitor service.
+    Then forwards patient text/condition to Symptom Analyzer.
+    """
 
-    if m.startswith("bp"):
-        if value > 180 or value < 80:
-            return "high"
-        if value > 140 or value < 90:
-            return "medium"
-        return "low"
+    # -----------------------------
+    # Example patient message for demo
+    # Later you can pass real clinical text
+    # -----------------------------
+    patient_text = f"Patient has abnormal {alert.metric} with value {alert.value}"
 
-    return "medium"
+    try:
+        # Forward to Symptom Analyzer
+        response = requests.post(
+            SYMPTOM_ANALYZER_URL,
+            json={"patient_id": alert.patient_id, "text": patient_text},
+            timeout=10
+        )
+        response.raise_for_status()
 
-@app.post("/send_vitals")
-def send_vitals(payload: VitalsPayload):
-    severity = severity_for(payload.metric, payload.value)
+        diagnosis = response.json()
 
-    if severity in ("medium", "high"):
-        alert = {
-            "patient_id": payload.patient_id,
-            "metric": payload.metric,
-            "value": payload.value,
-            "ts": payload.ts or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "severity": severity
+        return {
+            "status": "received",
+            "forward_status": "success",
+            "diagnosis_response": diagnosis
         }
 
-        try:
-            r = requests.post(ORCHESTRATOR_URL, json=alert, timeout=5)
-            r.raise_for_status()
-            return {"status": "alert_sent", "orchestrator_response": r.json()}
-        except Exception as e:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Failed to send alert to orchestrator: {e}"
-            )
-
-    return {"status": "ok", "severity": severity}
+    except Exception as e:
+        return {
+            "status": "received",
+            "forward_status": "failed",
+            "error": str(e)
+        }
 
 
-# ------------------------------
-# REQUIRED ENTRYPOINT FOR RENDER
-# ------------------------------
+# -----------------------
+# REQUIRED FOR RENDER
+# -----------------------
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8010)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

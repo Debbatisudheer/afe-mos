@@ -2,8 +2,8 @@
 FROM golang:1.21 AS builder
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod tidy
+COPY go.mod ./
+RUN go mod tidy || true
 
 COPY . .
 
@@ -18,4 +18,3 @@ COPY --from=builder /app/app .
 
 EXPOSE 8001
 CMD ["./app"]
-

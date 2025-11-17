@@ -2,12 +2,12 @@ FROM python:3.10
 
 WORKDIR /app
 
-# Copy all files from vitals-monitor directory
-COPY . .
+# Copy only the vitals-monitor service folder
+COPY main.py .
+COPY requirements.txt .
 
-# Install dependencies directly
-RUN pip install fastapi uvicorn requests --no-cache-dir
+RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8010
 
-CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010"]

@@ -6,7 +6,9 @@ services:
     region: oregon
     repo: https://github.com/Debbatisudheer/afe-mos
     branch: main
-    root: services/orchestrator
+    dockerfilePath: services/orchestrator/Dockerfile
+    buildCommand: ""
+    startCommand: ""
 
   - type: web
     name: vitals-monitor
@@ -15,4 +17,6 @@ services:
     region: oregon
     repo: https://github.com/Debbatisudheer/afe-mos
     branch: main
-    root: services/agents/healthcare/vitals-monitor
+    dockerfilePath: services/agents/healthcare/vitals-monitor/Dockerfile
+    buildCommand: ""
+    startCommand: ""

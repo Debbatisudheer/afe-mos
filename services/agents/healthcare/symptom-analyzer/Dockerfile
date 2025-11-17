@@ -1,28 +1,21 @@
-# -------------------------
-# 1. Build Stage
-# -------------------------
+# ------------ BUILD STAGE ------------
 FROM golang:1.21 AS builder
-
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod tidy
 
 COPY . .
 
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-
 RUN go build -o app main.go
 
-# -------------------------
-# 2. Run Stage
-# -------------------------
-FROM alpine:3.19
-
+# ------------ RUN STAGE ------------
+FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/app .
 
 EXPOSE 8001
-
 CMD ["./app"]
+

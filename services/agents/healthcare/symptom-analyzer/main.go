@@ -23,7 +23,7 @@ func GetSentiment(text string) string {
     jsonData, _ := json.Marshal(payload)
 
     resp, err := http.Post(
-        "http://localhost:8050/predict",
+        "https://model-serving-u6py.onrender.com",
         "application/json",
         bytes.NewBuffer(jsonData),
     )

@@ -2,7 +2,7 @@ FROM python:3.10
 
 WORKDIR /app
 
-# Copy only the vitals-monitor service folder
+# Copy only required files
 COPY main.py .
 COPY requirements.txt .
 
